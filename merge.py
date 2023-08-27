@@ -1,6 +1,6 @@
 from pypdf import PdfMerger, PdfReader
 import re, os
-import shutil
+import tkinter as tk
 from os.path import expanduser
 
 def findTemplateFile(files, substring):
@@ -33,11 +33,6 @@ def findPDFPage(searchKey, pdf):
             break
     return pageFound
 
-def getKeyList(allFiles, keysAndFiles):
-    """Searches for and places list of all files with matching key in dict"""
-    for searchKey in keysAndFiles:
-        keysAndFiles[searchKey] = [files for files in allFiles if searchKey in files]
-
 def appendPDFs(key, files, offset, merger, scanTemplate):
     """Appends all found files after key's corresponding pdf bookmark"""
     merger.append(scanTemplate, pages = (offset))
@@ -55,7 +50,7 @@ def getBookmarkDistances(bookmarkDistances):
     print(distances)
     return distances
 
-def mergePDFs(keysAndFiles, bookmarkLocations, sourceName_bookmarkName):
+def mergePDFs(keysAndFiles, bookmarkLocations, sourceName_bookmarkName, distances, scanTemplatePDF):
     i = 0
     merger = PdfMerger()
     for key, files in keysAndFiles.items():
@@ -76,6 +71,41 @@ def mergePDFs(keysAndFiles, bookmarkLocations, sourceName_bookmarkName):
         i += 1
 
     return merger
+
+# begin functions that trigger PDF merging
+def findFolder(folderName, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, template_name, output_name):
+    user_home = expanduser("~")
+    desktop_path = os.path.join(user_home, "Desktop")
+    target_folder = folderName
+    folder_path = find_folder(desktop_path, target_folder)
+    if folder_path:
+        folder_path += "/"
+        print(f"Found the folder at: {folder_path}")
+        getFileList(folder_path, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, desktop_path, template_name, output_name)
+    else:
+        print("Folder not found on the desktop.")
+        exit()
+
+def getFileList(folder_path, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, desktop_path, template_name, output_name):
+    allFilesNotFull = os.listdir(folder_path)
+    allFiles = [folder_path + file for file in allFilesNotFull]
+    scanTemplate = findTemplateFile(allFiles, template_name)
+    scanTemplatePDF = PdfReader(scanTemplate)
+    findBookmarks(scanTemplatePDF, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, allFiles, desktop_path, output_name)
+
+def findBookmarks(scanTemplatePDF, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, allFiles, desktop_path, output_name):
+    for key in bookmarkLocations:
+        bookmarkLocations[key] = findPDFPage(key, scanTemplatePDF)
+    getKeyList_Merge(scanTemplatePDF, allFiles, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, desktop_path, output_name)
+
+def getKeyList_Merge(scanTemplatePDF, allFiles, keysAndFiles, bookmarkLocations, sourceName_bookmarkName, desktop_path, output_name):
+    """Searches for and places list of all files with matching key in dict"""
+    for searchKey in keysAndFiles:
+        keysAndFiles[searchKey] = [files for files in allFiles if searchKey in files]
+    distances = getBookmarkDistances(bookmarkLocations)
+    merged = mergePDFs(keysAndFiles, bookmarkLocations, sourceName_bookmarkName, distances, scanTemplatePDF)
+    merged.write(desktop_path + '/' + output_name + '.pdf')
+    merged.close()
 
 # defining bookmark titles
 bookmarkLocations = {
@@ -127,44 +157,44 @@ sourceName_bookmarkName = {
     "CLIENT COM" : 'during the period'
 }
 
-TEMPLATE_SUBSTRING = 'Scan Template'
+# creating tkinter UI
+window= tk.Tk()
+window.title("PDF Merger")
 
-# get list of all files in SCAN folder and find template file
-user_home = expanduser("~")
-desktop_path = os.path.join(user_home, "Desktop")
-target_folder = "SCAN"
-folder_path = find_folder(desktop_path, target_folder)
-if folder_path:
-    folder_path += "/"
-    print(f"Found the folder at: {folder_path}")
-else:
-    print("Folder not found on the desktop.")
-    exit()
-allFilesNotFull = os.listdir(folder_path)
-print('\n'.join(allFilesNotFull))
-allFiles = [folder_path + file for file in allFilesNotFull]
-print('\n'.join(allFiles))
-scanTemplate = findTemplateFile(allFiles, TEMPLATE_SUBSTRING)
-scanTemplatePDF = PdfReader(scanTemplate)
-# print(scanTemplate)
+window.columnconfigure(0, weight=1, minsize=500)
+window.rowconfigure(0, weight=1) # top banner row
+window.rowconfigure(1, weight=1) # scan folder name
+window.rowconfigure(2, weight=1) # template file name
+window.rowconfigure(3, weight=1) # output file name
+window.rowconfigure(4, weight=1) # merge PDF button
 
-# find location of all bookmarks in template file
-for key in bookmarkLocations:
-    bookmarkLocations[key] = findPDFPage(key, scanTemplatePDF)
+frm_banner = tk.Frame(master=window, relief=tk.RAISED, borderwidth=1)
+lbl_banner = tk.Label(master=frm_banner, text="Welcome to PDF Merger, please enter the information below.")
+lbl_banner.pack(padx=10)
+frm_banner.grid(row=0, column=0, padx=10, sticky="ew")
 
-# get list of all files and associate with key
-getKeyList(allFiles, keysAndFiles)
-print("Printing keys and file lists")
-print(keysAndFiles)
+frm_scanfolder = tk.Frame(master=window, relief=tk.RAISED, borderwidth=1)
+lbl_scanfolder = tk.Label(master=frm_scanfolder, text="Scan folder name: ")
+lbl_scanfolder.pack(side=tk.LEFT, padx=5)
+ent_scanfolder = tk.Entry(master=frm_scanfolder)
+ent_scanfolder.pack(side=tk.LEFT)
+frm_scanfolder.grid(row=1, column=0, padx=10, sticky="ew")
 
-# get distance between bookmarks
-distances = getBookmarkDistances(bookmarkLocations)
+frm_templatefile = tk.Frame(master=window, relief=tk.RAISED, borderwidth=1)
+lbl_templatefile = tk.Label(master=frm_templatefile, text="Scan Template file name (including .pdf): ")
+lbl_templatefile.pack(side=tk.LEFT, padx=5)
+ent_templatefile = tk.Entry(master=frm_templatefile)
+ent_templatefile.pack(side=tk.LEFT)
+frm_templatefile.grid(row=2, column=0, padx=10, sticky="ew")
 
-merged = mergePDFs(keysAndFiles, bookmarkLocations, sourceName_bookmarkName)
+frm_opfile = tk.Frame(master=window, relief=tk.RAISED, borderwidth=1)
+lbl_opfile = tk.Label(master=frm_opfile, text="Desired output file name (without .pdf): ")
+lbl_opfile.pack(side=tk.LEFT)
+ent_opfile = tk.Entry(master=frm_opfile)
+ent_opfile.pack(side=tk.LEFT)
+frm_opfile.grid(row=3, column=0, padx=10, sticky="ew")
 
-merged.write(desktop_path + '/result.pdf')
-merged.close()
+btn_mergePDFs = tk.Button(master=window, text="Merge PDFs", command=lambda: findFolder(ent_scanfolder.get(), keysAndFiles, bookmarkLocations, sourceName_bookmarkName, ent_templatefile.get(), ent_opfile.get()))
+btn_mergePDFs.grid(row=4, column=0)
 
-# os.mkdir(desktop_path + '/Source Docs')
-# for file in allFiles:
-#     shutil.move(file, desktop_path + '/Source Docs')
+window.mainloop()
