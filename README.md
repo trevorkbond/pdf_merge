@@ -23,7 +23,7 @@ section they will be merged into:
 - "SCH L" - Retained Earnings
 - "OI" - Other Source Documents
 - "CLIENT COM" - Client Communications
-See the [example scan template](www.google.com) for more information on file ordering.
+See the [example scan template](https://github.com/trevorkbond/pdf_merge/blob/main/Template.pdf) for more information on file ordering.
 
 Upon successful location of the scan folder and merging of files, the merged pdf will be output to the user's desktop with the given filename. All documents not named with the proper conventions,
 along with all non-pdf files, will be excluded from the scan.
