@@ -4,7 +4,7 @@ This PDF merger is specifically designed for use at a private, professional firm
 code can understand.
 
 # Requirements
-Usage of this requires PyPDF be installed on the computer. However, the finalized .app version (created using py2app) runs on current MacOS without any updating of Python or installation of PyPDF.
+Usage of this requires installation of PyPDF. However, the finalized .app version (created using py2app) runs on current MacOS without any updating of Python or installation of PyPDF.
 
 # Instructions
 Upon execution of the code, a TkInter UI will appear prompting input of the scan folder (where all source docs are located), the scan template file name, and the desired name of the outputted
